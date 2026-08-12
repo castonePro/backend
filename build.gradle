@@ -1,0 +1,73 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.3.7'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.capstone'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+// [중요] 저장소는 반드시 mavenCentral이 먼저, 그 다음이 Spring 저장소여야 합니다.
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+	maven { url 'https://repo.spring.io/snapshot' }
+}
+
+// [중요] Spring AI 버전을 명확히 지정 (2026년 기준 안정적인 마일스톤 버전)
+ext {
+	set('springAiVersion', "1.0.0-M1")
+}
+
+dependencies {
+	// Spring Boot 기본 스타터
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	//채팅방 구현 목적 웹 소켓
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	implementation 'com.google.firebase:firebase-admin:9.2.0'
+
+	// Spring AI (OpenAI 전용 스타터)
+	// 버전을 여기서 직접 적어주면 에러를 확실히 피할 수 있습니다.
+	implementation "org.springframework.ai:spring-ai-openai-spring-boot-starter:${springAiVersion}"
+
+	// 기타 라이브러리
+	implementation 'org.hibernate.orm:hibernate-spatial'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+
+	compileOnly 'org.projectlombok:lombok'
+	runtimeOnly 'org.postgresql:postgresql'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// BOM 설정 (버전 충돌 방지)
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

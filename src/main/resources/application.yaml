@@ -1,0 +1,45 @@
+spring:
+  profiles:
+    active: local
+    include:
+      - db
+      - jwt
+      - ai
+
+  application:
+    name: travelbusan
+
+  #JPA 및 Hibernate 설정
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 1000
+
+embedding:
+  server:
+    url: http://localhost:8000
+
+#  # 3. Redis 설정
+#  data:
+#    redis:
+#      host: localhost
+#      port: 6379
+#      password:
+
+#디버그
+logging:
+  level:
+    com.capstone.travelbusan: debug
+    org.springframework.security: info
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+#서버 설정
+server:
+  port: 8080
+  tomcat:
+    uri-encoding: UTF-8

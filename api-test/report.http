@@ -1,0 +1,286 @@
+### Phase 5: 신뢰·안전 (노쇼·신고·제재) 테스트
+### 순서대로 위에서부터 하나씩 실행(각 요청 위 ### 옆 초록 화살표 클릭)
+### 전제조건: verification.http로 test1234@naver.com(방장), test2@naver.com(참여자) 둘 다 본인 인증을 먼저 완료해둘 것
+### 주의: 이 파일을 끝까지 실행하면 test2 계정이 노쇼 2회로 RESTRICTED(14일 이용 제한) 상태가 된다.
+### 다른 Phase의 .http 테스트를 test2로 이어서 하려면 이 파일을 마지막에 실행할 것.
+
+@hostname = localhost
+@port = 8080
+@baseUrl = http://{{hostname}}:{{port}}/api/v1
+
+### 0-1. 방장 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test1234@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("hostToken", response.body.data.access_token);
+%}
+
+### 0-1b. 방장 user_id 확보 (1번에서 신고 대상으로 사용)
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{hostToken}}
+
+> {%
+    client.global.set("hostUserId", response.body.user_id);
+%}
+
+### 0-2. 참여자 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test2@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("guestToken", response.body.data.access_token);
+%}
+
+### 0-3. 참여자 user_id 확보
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{guestToken}}
+
+> {%
+    client.global.set("guestUserId", response.body.user_id);
+%}
+
+### ── A. 신고 접수 테스트 ──
+
+### 1. 참여자가 방장을 신고
+POST {{baseUrl}}/reports
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{
+  "reportedUserId": "{{hostUserId}}",
+  "reasonCategory": "INAPPROPRIATE_BEHAVIOR",
+  "description": "테스트 신고입니다."
+}
+
+### 2. 내가 접수한 신고 목록 확인 — 1번 신고가 status:PENDING으로 보여야 정상
+GET {{baseUrl}}/reports/my
+Authorization: Bearer {{guestToken}}
+
+### ── B. 노쇼 1회차: 출발 임박(48시간 이내) 취소 → 자동 노쇼 기록 ──
+
+### 3. 테스트용 일정 저장 (오늘 날짜로 시작 — 취소하는 순간 이미 48시간 이내이므로 바로 노쇼 판정됨)
+POST {{baseUrl}}/planner/save
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "status": "success",
+  "data": {
+    "title": "노쇼 테스트 일정 1",
+    "region": "부산 해운대구",
+    "start_date": "2026-08-03",
+    "end_date": "2026-08-03",
+    "generated_courses": [
+      {
+        "day_number": 1,
+        "start_time": "10:00:00",
+        "duration_minutes": 90,
+        "place": "해운대 해수욕장",
+        "latitude": 35.1587,
+        "longitude": 129.1604,
+        "category_type": ["자연"],
+        "operating_hours": "상시",
+        "description": "노쇼 테스트"
+      }
+    ]
+  }
+}
+
+> {%
+    client.global.set("itineraryId1", response.body);
+%}
+
+### 4. 동행 모집글 생성
+POST {{baseUrl}}/companions
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "itineraryId": {{itineraryId1}},
+  "title": "노쇼 테스트 동행 1",
+  "minParticipants": 1,
+  "maxParticipants": 3,
+  "description": "노쇼 테스트용"
+}
+
+> {%
+    client.global.set("companionId1", response.body.companionId);
+%}
+
+### 5. 참여 신청
+POST {{baseUrl}}/companions/{{companionId1}}/applications
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{ "introduction": "노쇼 테스트 참여자입니다." }
+
+> {%
+    client.global.set("applicationId1", response.body.applicationId);
+%}
+
+### 6. 방장이 승인 (확정된 자리가 있어야 취소 시 노쇼로 잡힘)
+PATCH {{baseUrl}}/companions/applications/{{applicationId1}}/approve
+Authorization: Bearer {{hostToken}}
+
+### 7. 참여자가 취소 — 오늘이 출발일이라 이미 48시간 이내이므로 자동으로 노쇼 처리됨
+DELETE {{baseUrl}}/companions/applications/{{applicationId1}}
+Authorization: Bearer {{guestToken}}
+
+### 8. 참여자 정보 재조회 — no_show_count:1, sanction_level:WARNED 여야 정상
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{guestToken}}
+
+### ── C. 노쇼 2회차: 방장이 수동으로 노쇼 처리 → RESTRICTED(14일 제한)로 승급 ──
+
+### 9. 테스트용 일정 저장 2
+POST {{baseUrl}}/planner/save
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "status": "success",
+  "data": {
+    "title": "노쇼 테스트 일정 2",
+    "region": "부산 해운대구",
+    "start_date": "2026-09-20",
+    "end_date": "2026-09-20",
+    "generated_courses": [
+      {
+        "day_number": 1,
+        "start_time": "10:00:00",
+        "duration_minutes": 90,
+        "place": "해운대 해수욕장",
+        "latitude": 35.1587,
+        "longitude": 129.1604,
+        "category_type": ["자연"],
+        "operating_hours": "상시",
+        "description": "노쇼 테스트 2"
+      }
+    ]
+  }
+}
+
+> {%
+    client.global.set("itineraryId2", response.body);
+%}
+
+### 10. 동행 모집글 생성 2
+POST {{baseUrl}}/companions
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "itineraryId": {{itineraryId2}},
+  "title": "노쇼 테스트 동행 2",
+  "minParticipants": 1,
+  "maxParticipants": 3,
+  "description": "노쇼 테스트용 2"
+}
+
+> {%
+    client.global.set("companionId2", response.body.companionId);
+%}
+
+### 11. 참여 신청 2 — 아직 WARNED 단계라 신청 가능해야 정상 (RESTRICTED부터 막힘)
+POST {{baseUrl}}/companions/{{companionId2}}/applications
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{ "introduction": "노쇼 테스트 참여자입니다 2." }
+
+> {%
+    client.global.set("applicationId2", response.body.applicationId);
+%}
+
+### 12. 방장이 승인
+PATCH {{baseUrl}}/companions/applications/{{applicationId2}}/approve
+Authorization: Bearer {{hostToken}}
+
+### 13. 방장이 마감 → 시작 → (참여자가 실제로 안 나타났다고 가정)
+PATCH {{baseUrl}}/companions/{{companionId2}}/close
+Authorization: Bearer {{hostToken}}
+
+### 14. 여행 시작
+PATCH {{baseUrl}}/companions/{{companionId2}}/start
+Authorization: Bearer {{hostToken}}
+
+### 15. 방장이 참여자를 노쇼로 수동 처리
+PATCH {{baseUrl}}/companions/applications/{{applicationId2}}/no-show
+Authorization: Bearer {{hostToken}}
+
+### 16. 같은 신청을 다시 노쇼 처리 시도 — 이미 처리됐으므로 400 에러가 정상
+PATCH {{baseUrl}}/companions/applications/{{applicationId2}}/no-show
+Authorization: Bearer {{hostToken}}
+
+### 17. 참여자 정보 재조회 — no_show_count:2, sanction_level:RESTRICTED, restricted_until에 14일 뒤 날짜가 찍혀야 정상
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{guestToken}}
+
+### ── D. 제재 검증: RESTRICTED 상태에서는 동행 신청이 막혀야 한다 ──
+
+### 18. 테스트용 일정/동행 하나 더 생성 (방장 계정)
+POST {{baseUrl}}/planner/save
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "status": "success",
+  "data": {
+    "title": "제재 검증용 일정",
+    "region": "부산 해운대구",
+    "start_date": "2026-10-01",
+    "end_date": "2026-10-01",
+    "generated_courses": [
+      {
+        "day_number": 1,
+        "start_time": "10:00:00",
+        "duration_minutes": 90,
+        "place": "해운대 해수욕장",
+        "latitude": 35.1587,
+        "longitude": 129.1604,
+        "category_type": ["자연"],
+        "operating_hours": "상시",
+        "description": "제재 검증"
+      }
+    ]
+  }
+}
+
+> {%
+    client.global.set("itineraryId3", response.body);
+%}
+
+### 19. 동행 모집글 생성 3
+POST {{baseUrl}}/companions
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "itineraryId": {{itineraryId3}},
+  "title": "제재 검증용 동행",
+  "minParticipants": 1,
+  "maxParticipants": 3,
+  "description": "제재 검증용"
+}
+
+> {%
+    client.global.set("companionId3", response.body.companionId);
+%}
+
+### 20. RESTRICTED 상태의 참여자가 신청 시도 — "이용이 제한됩니다" 400 에러가 정상
+POST {{baseUrl}}/companions/{{companionId3}}/applications
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{ "introduction": "제한 상태에서 신청 시도" }

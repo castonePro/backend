@@ -1,0 +1,101 @@
+### Phase 6: 가이드 전환 심사 테스트
+### 순서대로 위에서부터 하나씩 실행(각 요청 위 ### 옆 초록 화살표 클릭)
+### 전제조건: verification.http로 test1234@naver.com, test2@naver.com 둘 다 본인 인증을 먼저 완료해둘 것
+###
+### 주의: 전환 조건은 "참여 3회 이상 AND 방장 3회 이상 AND 운영 평가 4.0 이상"이다.
+### 즉 한 계정이 방장으로 3번, 참여자로 3번 총 6번의 완료된 동행을 쌓아야 한다.
+### companion_review.http를 host/guest 역할을 바꿔가며 여러 번 반복 실행해서 조건을 채운 뒤
+### 이 파일의 C 파트부터 이어서 테스트하면 된다. (A, B 파트는 조건 미충족 상태에서도 바로 실행 가능)
+
+@hostname = localhost
+@port = 8080
+@baseUrl = http://{{hostname}}:{{port}}/api/v1
+
+### 0-1. 방장 계정 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test1234@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("hostToken", response.body.data.access_token);
+%}
+
+### 0-2. 참여자 계정 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test2@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("guestToken", response.body.data.access_token);
+%}
+
+### ── A. 현재 진행 현황 확인 (언제든 실행 가능) ──
+
+### 1. 방장 계정 전환 현황 — companionHostCount/JoinCount, 운영 평가 평균, 조건 충족 여부가 보여야 정상
+GET {{baseUrl}}/guide-conversion/status
+Authorization: Bearer {{hostToken}}
+
+### 2. 참여자 계정 전환 현황
+GET {{baseUrl}}/guide-conversion/status
+Authorization: Bearer {{guestToken}}
+
+### ── B. 조건 미충족 상태에서 신청 시도 → 차단 확인 ──
+
+### 3. 조건 미충족 상태에서 전환 신청 시도 — "조건을 아직 만족하지 않았습니다" 400 에러가 정상
+### (이미 조건을 채운 계정이라면 이 요청은 성공(201)할 수 있음 — 그 경우 파트 C의 5번으로 건너뛸 것)
+POST {{baseUrl}}/guide-conversion/apply
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{ "message": "가이드로 활동해보고 싶어요." }
+
+### ── C. 조건 충족 후: 신청 → 운영자 심사 → 결과 확인 ──
+### (companion_review.http를 host/guest 역할 바꿔가며 반복 실행해서
+###  두 계정 모두 companionHostCount>=3, companionJoinCount>=3, 운영 평가 평균>=4.0을 채운 뒤 진행)
+
+### 4. 전환 신청 (조건 충족 후) — 201 Created, status:PENDING 이어야 정상
+POST {{baseUrl}}/guide-conversion/apply
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{ "message": "동행 여행을 여러 번 진행하며 좋은 평가를 받았습니다." }
+
+> {%
+    client.global.set("applicationId", response.body.applicationId);
+%}
+
+### 5. 같은 계정으로 다시 신청 시도 — "이미 심사 대기중인 신청이 있습니다" 400 에러가 정상
+POST {{baseUrl}}/guide-conversion/apply
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{ "message": "중복 신청 테스트" }
+
+### 6. 내 신청 이력 확인 — status:PENDING인 신청이 보여야 정상
+GET {{baseUrl}}/guide-conversion/applications/my
+Authorization: Bearer {{hostToken}}
+
+### 7. 운영자 심사 — 승인 처리
+### 주의: 아직 관리자 role 체계가 없어 로그인한 사용자면 누구나 호출 가능 (테스트/데모 한정, 운영 반영 전 권한 체크 필요)
+PATCH {{baseUrl}}/guide-conversion/applications/{{applicationId}}/review
+Content-Type: application/json
+
+{
+  "decision": "APPROVE",
+  "note": "동행 이력과 평가가 우수하여 승인합니다."
+}
+
+### 8. 승인 후 전환 현황 재조회 — latestApplication.status:APPROVED 여야 정상
+GET {{baseUrl}}/guide-conversion/status
+Authorization: Bearer {{hostToken}}
+
+### 9. (참고) 승인 후에도 alreadyGuide:false 여야 정상 — 기존 가이드 등록 폼을 마저 작성해야
+### 실제로 가이드(is_guide:true)가 된다. Flutter에서는 '가이드 등록 폼 작성하기' 버튼으로 이어진다.

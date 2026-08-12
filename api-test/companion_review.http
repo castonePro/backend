@@ -1,0 +1,185 @@
+### Phase 4: 여행 완료·평가·이력 테스트
+### 순서대로 위에서부터 하나씩 실행(각 요청 위 ### 옆 초록 화살표 클릭)
+### 전제조건: verification.http로 test1234@naver.com(방장), test2@naver.com(참여자) 둘 다 본인 인증을 먼저 완료해둘 것
+### 이 파일은 companion.http와 별개로 새 동행 방을 만들어 COMPLETED까지 끝까지 진행시킨다.
+
+@hostname = localhost
+@port = 8080
+@baseUrl = http://{{hostname}}:{{port}}/api/v1
+
+### 0-1. 방장 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test1234@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("hostToken", response.body.data.access_token);
+%}
+
+### 0-2. 참여자 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test2@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("guestToken", response.body.data.access_token);
+%}
+
+### 0-3. 방장 user_id 확보 (10번에서 revieweeId로 사용)
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{hostToken}}
+
+> {%
+    client.global.set("hostUserId", response.body.user_id);
+%}
+
+### 1. 테스트용 일정 저장
+POST {{baseUrl}}/planner/save
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "status": "success",
+  "data": {
+    "title": "리뷰 테스트 일정",
+    "region": "부산 해운대구",
+    "start_date": "2026-09-10",
+    "end_date": "2026-09-11",
+    "generated_courses": [
+      {
+        "day_number": 1,
+        "start_time": "10:00:00",
+        "duration_minutes": 90,
+        "place": "해운대 해수욕장",
+        "latitude": 35.1587,
+        "longitude": 129.1604,
+        "category_type": ["자연"],
+        "operating_hours": "상시",
+        "description": "해운대 산책"
+      }
+    ]
+  }
+}
+
+> {%
+    client.global.set("itineraryId", response.body);
+%}
+
+### 2. 동행 모집글 생성
+POST {{baseUrl}}/companions
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "itineraryId": {{itineraryId}},
+  "title": "해운대 리뷰 테스트 동행",
+  "minParticipants": 1,
+  "maxParticipants": 3,
+  "preferenceTags": ["자연"],
+  "costSharingNote": "각자 부담",
+  "description": "리뷰 테스트용"
+}
+
+> {%
+    client.global.set("companionId", response.body.companionId);
+%}
+
+### 3. 참여 신청
+POST {{baseUrl}}/companions/{{companionId}}/applications
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{
+  "introduction": "리뷰 테스트 참여자입니다."
+}
+
+> {%
+    client.global.set("applicationId", response.body.applicationId);
+%}
+
+### 4. 방장이 승인
+PATCH {{baseUrl}}/companions/applications/{{applicationId}}/approve
+Authorization: Bearer {{hostToken}}
+
+### 5. 모집 마감 (승인 인원 충족 → CONFIRMED)
+PATCH {{baseUrl}}/companions/{{companionId}}/close
+Authorization: Bearer {{hostToken}}
+
+### 6. 여행 시작
+PATCH {{baseUrl}}/companions/{{companionId}}/start
+Authorization: Bearer {{hostToken}}
+
+### 7. 여행 완료 처리 (여기서 completedAt이 찍히고, host/join 카운트가 올라간다)
+PATCH {{baseUrl}}/companions/{{companionId}}/complete
+Authorization: Bearer {{hostToken}}
+
+### 8. 완료 후 내 정보 재조회 — 방장이므로 companion_host_count가 1 올라가 있어야 정상
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{hostToken}}
+
+### 9. 참여자가 평가 가능 대상 조회 — 방장 1명, alreadyReviewed:false 여야 정상
+GET {{baseUrl}}/companions/{{companionId}}/reviews/reviewable
+Authorization: Bearer {{guestToken}}
+
+### 10. 참여자 → 방장 평가 제출 (isHost 대상이므로 operationRating 포함 가능)
+POST {{baseUrl}}/companions/{{companionId}}/reviews
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{
+  "revieweeId": "{{hostUserId}}",
+  "rating": 4.5,
+  "tags": ["시간 약속", "매너 좋음"],
+  "comment": "친절하게 안내해주셨어요!",
+  "operationRating": 4.0
+}
+
+### 11. 참여자 기준 "이 동행에서 내가 받은 평가" 조회 — 아직 방장이 평가를 안 남겼으니 pendingCount:1, reviews:[] 여야 정상 (더블 블라인드)
+GET {{baseUrl}}/companions/{{companionId}}/reviews/received
+Authorization: Bearer {{guestToken}}
+
+### 12. 방장이 평가 가능 대상 조회 — 참여자 1명, alreadyReviewed:false 여야 정상
+GET {{baseUrl}}/companions/{{companionId}}/reviews/reviewable
+Authorization: Bearer {{hostToken}}
+
+> {%
+    if (response.body.length > 0) {
+        client.global.set("guestUserId", response.body[0].userId);
+    }
+%}
+
+### 13. 방장 → 참여자 평가 제출 (방장이 답례 제출 → 이 시점부터 쌍방 공개)
+POST {{baseUrl}}/companions/{{companionId}}/reviews
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "revieweeId": "{{guestUserId}}",
+  "rating": 5.0,
+  "tags": ["매너 좋음", "소통 원활"],
+  "comment": "즐겁게 잘 다녀왔어요!"
+}
+
+### 14. 참여자 기준 다시 조회 — 이제 쌍방 제출됐으니 reviews에 방장 평가가 보이고 pendingCount:0 이어야 정상
+GET {{baseUrl}}/companions/{{companionId}}/reviews/received
+Authorization: Bearer {{guestToken}}
+
+### 15. 방장 기준 조회 — 참여자 평가가 보여야 정상
+GET {{baseUrl}}/companions/{{companionId}}/reviews/received
+Authorization: Bearer {{hostToken}}
+
+### 16. 참여자 마이페이지 요약 — companionJoinCount 1, averageRating에 방장이 준 5.0점 반영되어야 정상
+GET {{baseUrl}}/users/me/companion-summary
+Authorization: Bearer {{guestToken}}
+
+### 17. 방장 마이페이지 요약 — companionHostCount 1, averageRating과 operationAverageRating에 반영되어야 정상
+GET {{baseUrl}}/users/me/companion-summary
+Authorization: Bearer {{hostToken}}

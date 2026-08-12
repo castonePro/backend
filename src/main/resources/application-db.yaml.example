@@ -1,0 +1,10 @@
+# 데이터베이스 연결 정보
+# 이 파일을 복사해서 application-db.yaml로 이름을 바꾸고, 본인 로컬 DB 정보로 채워넣으세요.
+# (application-db.yaml은 .gitignore에 등록되어 있어 git에는 올라가지 않습니다.)
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/travelbusan
+    username: postgres
+    password: 여기에_본인_로컬_postgres_비밀번호
+    driver-class-name: org.postgresql.Driver

@@ -1,0 +1,227 @@
+### Phase 7: 수익 모델 · 결제 연동 (Mock PG) 테스트
+### 순서대로 위에서부터 하나씩 실행(각 요청 위 ### 옆 초록 화살표 클릭)
+### 전제조건: verification.http로 test1234@naver.com(방장), test2@naver.com(참여자) 둘 다 본인 인증을 먼저 완료해둘 것
+###
+### 참고: 참여 수수료는 참여자의 companionJoinCount(완료된 참여 횟수)가 2 이상,
+### 즉 이번이 "3회차 이상" 참여일 때만 부과된다. 신규 계정은 처음엔 무료이므로
+### 파트 C(참여 수수료)는 companion_review.http를 반복 실행해 guestToken 계정의
+### companionJoinCount를 2 이상으로 만든 뒤 이어서 테스트할 것.
+
+@hostname = localhost
+@port = 8080
+@baseUrl = http://{{hostname}}:{{port}}/api/v1
+
+### 0-1. 방장 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test1234@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("hostToken", response.body.data.access_token);
+%}
+
+### 0-2. 참여자 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test2@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("guestToken", response.body.data.access_token);
+%}
+
+### ── A. 보증금: 확정 시 요청 → 결제 → 완료 시 환급 ──
+
+### 1. 테스트용 일정 저장
+POST {{baseUrl}}/planner/save
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "status": "success",
+  "data": {
+    "title": "결제 테스트 일정",
+    "region": "부산 해운대구",
+    "start_date": "2026-09-10",
+    "end_date": "2026-09-11",
+    "generated_courses": [
+      {
+        "day_number": 1,
+        "start_time": "10:00:00",
+        "duration_minutes": 90,
+        "place": "해운대 해수욕장",
+        "latitude": 35.1587,
+        "longitude": 129.1604,
+        "category_type": ["자연"],
+        "operating_hours": "상시",
+        "description": "해운대 산책"
+      }
+    ]
+  }
+}
+
+> {%
+    client.global.set("itineraryId", response.body);
+%}
+
+### 2. 동행 모집글 생성
+POST {{baseUrl}}/companions
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "itineraryId": {{itineraryId}},
+  "title": "결제 테스트 동행",
+  "minParticipants": 1,
+  "maxParticipants": 3,
+  "preferenceTags": ["자연"],
+  "costSharingNote": "각자 부담",
+  "description": "결제 흐름 테스트용 동행"
+}
+
+> {%
+    client.global.set("companionId", response.body.companionId);
+%}
+
+### 3. 참여자 신청
+POST {{baseUrl}}/companions/{{companionId}}/applications
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{ "introduction": "결제 테스트로 신청합니다." }
+
+> {%
+    client.global.set("applicationId", response.body.applicationId);
+%}
+
+### 4. 방장이 신청 승인 — 참여자 companionJoinCount가 2 미만이면 수수료는 발생하지 않음(정상)
+PATCH {{baseUrl}}/companions/applications/{{applicationId}}/approve
+Authorization: Bearer {{hostToken}}
+
+### 5. 방장이 모집 마감 → 정원 충족 시 CONFIRMED 전이 + 참여자에게 보증금 결제 요청 생성
+PATCH {{baseUrl}}/companions/{{companionId}}/close
+Authorization: Bearer {{hostToken}}
+
+### 6. 참여자 결제 내역 확인 — type:DEPOSIT, status:PENDING, amount:7000 이어야 정상
+GET {{baseUrl}}/payments/my
+Authorization: Bearer {{guestToken}}
+
+> {%
+    const deposit = response.body.find(p => p.type === "DEPOSIT" && p.status === "PENDING");
+    client.global.set("depositPaymentId", deposit ? deposit.paymentId : "");
+%}
+
+### 7. 보증금 결제 (Mock PG 즉시 승인) — status:PAID로 바뀌어야 정상
+POST {{baseUrl}}/payments/{{depositPaymentId}}/pay
+Authorization: Bearer {{guestToken}}
+
+### 8. 여행 시작 처리
+PATCH {{baseUrl}}/companions/{{companionId}}/start
+Authorization: Bearer {{hostToken}}
+
+### 9. 여행 완료 처리 → 보증금 전액 환급 트리거
+PATCH {{baseUrl}}/companions/{{companionId}}/complete
+Authorization: Bearer {{hostToken}}
+
+### 10. 참여자 결제 내역 재확인 — 방금 그 DEPOSIT이 status:REFUNDED 여야 정상
+GET {{baseUrl}}/payments/my
+Authorization: Bearer {{guestToken}}
+
+### ── B. 모집글 부스트 결제 ──
+
+### 11. 두 번째 테스트용 일정 저장
+POST {{baseUrl}}/planner/save
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "status": "success",
+  "data": {
+    "title": "부스트 테스트 일정",
+    "region": "부산 남구",
+    "start_date": "2026-09-20",
+    "end_date": "2026-09-21",
+    "generated_courses": [
+      {
+        "day_number": 1,
+        "start_time": "11:00:00",
+        "duration_minutes": 60,
+        "place": "이기대공원",
+        "latitude": 35.1264,
+        "longitude": 129.1198,
+        "category_type": ["자연"],
+        "operating_hours": "상시",
+        "description": "이기대 산책"
+      }
+    ]
+  }
+}
+
+> {%
+    client.global.set("boostItineraryId", response.body);
+%}
+
+### 12. 부스트 테스트용 모집글 생성 (RECRUITING 상태)
+POST {{baseUrl}}/companions
+Authorization: Bearer {{hostToken}}
+Content-Type: application/json
+
+{
+  "itineraryId": {{boostItineraryId}},
+  "title": "부스트 테스트 동행",
+  "minParticipants": 1,
+  "maxParticipants": 3,
+  "preferenceTags": ["자연"],
+  "costSharingNote": "각자 부담",
+  "description": "부스트 결제 테스트용"
+}
+
+> {%
+    client.global.set("boostCompanionId", response.body.companionId);
+%}
+
+### 13. 부스트 전 탐색 목록 — boosted:false 인 채로 생성일 역순 정렬 확인
+GET {{baseUrl}}/companions
+
+### 14. 모집글 부스트 결제 (Mock PG 즉시 승인, 3000원, 3일)
+PATCH {{baseUrl}}/companions/{{boostCompanionId}}/boost
+Authorization: Bearer {{hostToken}}
+
+### 15. 부스트 후 탐색 목록 — 방금 부스트한 글이 boosted:true로 최상단에 노출되어야 정상
+GET {{baseUrl}}/companions
+
+### 16. 방장 결제 내역 확인 — type:BOOST, status:PAID 이어야 정상
+GET {{baseUrl}}/payments/my
+Authorization: Bearer {{hostToken}}
+
+### ── C. 참여 수수료 (3회차부터) — 참여자 companionJoinCount>=2 필요, 준비되어 있을 때만 실행 ──
+### companion_review.http를 반복 실행해 guestToken 계정의 companionJoinCount를 2 이상으로 만든 뒤
+### 파트 A의 1~4번을 새 동행으로 다시 실행하고 이어서 아래를 실행할 것.
+
+### 17. 승인 직후 참여자 결제 내역 확인 — type:PARTICIPATION_FEE, status:PENDING, amount:1500 이 추가로 보여야 정상
+GET {{baseUrl}}/payments/my
+Authorization: Bearer {{guestToken}}
+
+### ── D. 취소 시 전액 환급 (보증금 + 수수료) ──
+### 파트 A처럼 CONFIRMED까지 만든 별도 동행에 대해 방장이 취소하면 검증 가능.
+
+### 18. 방장 취소 (CONFIRMED 상태의 동행에 대해 실행) → 보증금·수수료 전액 환급 트리거
+### PATCH {{baseUrl}}/companions/{여기에 취소 테스트용 companionId}/cancel
+### Authorization: Bearer {{hostToken}}
+
+### 19. 취소 후 참여자 결제 내역 재확인 — 관련 DEPOSIT/PARTICIPATION_FEE가 모두 status:REFUNDED 여야 정상
+### GET {{baseUrl}}/payments/my
+### Authorization: Bearer {{guestToken}}
+
+### ── E. 노쇼 시 보증금 몰수 ──
+### 확정된 참여자가 보증금을 결제한 뒤, 출발 임박(48시간 이내)에 취소하거나
+### 방장이 PATCH /companions/applications/{applicationId}/no-show 로 수동 노쇼 처리하면
+### 해당 참여자의 DEPOSIT이 환급되지 않고 status:FORFEITED로 바뀐다.
+### (48시간 윈도우 특성상 이 파일의 자동 흐름으로는 재현이 번거로워 수동 확인 항목으로 남겨둠)

@@ -1,0 +1,52 @@
+### 변수 설정
+@hostname = localhost
+@port = 8080
+@baseUrl = http://{{hostname}}:{{port}}/api/v1
+
+### 1. 로그인 (기존 auth.http에서 만든 계정 재사용, 토큰 자동 저장)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test2@naver.com",
+  "password": "password123!@"
+}
+
+> {%
+    client.global.set("token", response.body.data.access_token);
+%}
+
+### 2. 내 프로필 조회 (인증 전 — phone_verified: false 확인)
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{token}}
+
+### 3. 인증번호 발송 (devCode를 응답에서 확인 후 아래에 직접 붙여넣기)
+POST {{baseUrl}}/verification/phone/send
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "phoneNumber": "01012345678"
+}
+
+> {%
+    client.global.set("verificationId", response.body.verificationId);
+    client.global.set("devCode", response.body.devCode);
+%}
+
+### 4. 인증번호 확인 (위 3번 응답의 verificationId/devCode 자동 사용)
+POST {{baseUrl}}/verification/phone/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "verificationId": "{{verificationId}}",
+  "code": "{{devCode}}",
+  "phoneNumber": "01012345678",
+  "birthYear": 2000,
+  "gender": "MALE"
+}
+
+### 5. 내 프로필 재조회 (phone_verified: true, birth_year: 2000, gender: MALE 확인)
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{token}}
