@@ -28,24 +28,24 @@ public class PlannerService {
 
     private final AiService aiService;
     private final JdbcTemplate jdbcTemplate;
-    private final RestTemplate restTemplate = new RestTemplate();
     private final ItineraryRepository itineraryRepository;
     private final ItineraryDetailRepository detailRepository;
     private final TravelPlaceRepository travelPlaceRepository;
 
     public String generateTravelPlan(PlannerRequest request) {
-        // 1. 임베딩 생성
-        String combinedPrompt = "query: " + String.join(", ", request.categories()) + " " + request.prompt();
-        String vectorString = getEmbedding(combinedPrompt);
+        // 1. 임베딩 생성 (OpenAI Embedding API 활용)
+        String combinedPrompt = String.join(", ", request.categories()) + " " + request.prompt();
+        String vectorString = aiService.getEmbedding(combinedPrompt);
 
-        // 2. 관련 장소 검색
+        // 2. 관련 장소 검색 (Oracle 23ai AI Vector Search: VECTOR_DISTANCE & FETCH FIRST)
         String sql = """
             SELECT p.title, p.addr1, p.cat1, p.cat2, p.cat3, f.use_time, v.content_chunk,
-                   p.location[0] AS mapx, p.location[1] AS mapy 
+                   p.mapx, p.mapy 
             FROM travel_places p 
             JOIN travel_vectors v ON p.place_id = v.place_id 
             LEFT JOIN travel_fees f ON p.place_id = f.place_id
-            ORDER BY v.embedding <=> ?::vector LIMIT 30
+            ORDER BY VECTOR_DISTANCE(v.embedding, TO_VECTOR(?), COSINE) ASC
+            FETCH FIRST 30 ROWS ONLY
             """;
         List<Map<String, Object>> places = jdbcTemplate.queryForList(sql, vectorString);
 
@@ -106,16 +106,6 @@ public class PlannerService {
 
         // 6. GPT API 호출
         return aiService.getChatResponse(finalPrompt);
-    }
-
-    private String getEmbedding(String text) {
-        String url = "http://115.68.232.25:8000/embed";
-        try {
-            Map<String, Object> response = restTemplate.postForObject(url, Map.of("text", text), Map.class);
-            return ((List<Double>) response.get("embedding")).toString();
-        } catch (Exception e) {
-            throw new RuntimeException("임베딩 서버(Python)가 꺼져있거나 통신에 실패했습니다.", e);
-        }
     }
 
     @Transactional

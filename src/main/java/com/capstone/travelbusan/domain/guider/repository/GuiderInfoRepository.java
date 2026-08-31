@@ -13,15 +13,14 @@ import java.util.UUID;
 public interface GuiderInfoRepository extends JpaRepository<GuiderInfo, UUID> {
 
     /**
-     * 특정 활동 지역을 포함하는 가이드 목록 조회
-     * PostgreSQL의 배열(@>) 연산자를 활용한 네이티브 쿼리 예시라네.
+     * 특정 활동 지역을 포함하는 가이드 목록 조회 (Oracle 호환)
      */
-    @Query(value = "SELECT * FROM guider_info WHERE :region = ANY(active_regions)", nativeQuery = true)
+    @Query(value = "SELECT * FROM guider_info WHERE active_regions LIKE '%' || :region || '%'", nativeQuery = true)
     List<GuiderInfo> findByActiveRegion(@Param("region") String region);
 
     /**
-     * 특정 전문 분야를 가진 가이드 목록 조회
+     * 특정 전문 분야를 가진 가이드 목록 조회 (Oracle 호환)
      */
-    @Query(value = "SELECT * FROM guider_info WHERE :specialty = ANY(specialties)", nativeQuery = true)
+    @Query(value = "SELECT * FROM guider_info WHERE specialties LIKE '%' || :specialty || '%'", nativeQuery = true)
     List<GuiderInfo> findBySpecialty(@Param("specialty") String specialty);
 }

@@ -29,10 +29,9 @@ class RagPipelineTest {
         String userQuestion = "양식 종류로 음식점 추천해줘 광안리 근처로.";
         System.out.println("💬 [사용자 질문]: " + userQuestion);
 
-        // 2. 파이썬 서버를 통해 질문을 벡터(Embedding)로 변환
-        // e5 모델 특성상 검색 쿼리에는 'query: ' 접두사를 붙이는 것이 정확도가 높습니다.
-        String vectorString = getEmbeddingFromPython("query: " + userQuestion);
-        System.out.println("🧬 [임베딩]: 질문의 벡터화 완료");
+        // 2. OpenAI Embedding API를 통해 질문을 벡터(Embedding)로 변환
+        String vectorString = aiService.getEmbedding(userQuestion);
+        System.out.println("🧬 [임베딩]: 질문의 벡터화 완료 (OpenAI text-embedding-3-small)");
 
         // 3. PostgreSQL(pgvector)를 이용한 유사도 검색
         // <=> 연산자는 코사인 거리(Cosine Distance)를 계산합니다.
@@ -77,24 +76,5 @@ class RagPipelineTest {
         System.out.println("\n================ [ AI 가이드의 추천 ] ================\n");
         System.out.println(response);
         System.out.println("\n====================================================");
-    }
-
-    /**
-     * FastAPI 서버(8000포트)와 통신하여 벡터 배열을 문자열로 받아옵니다.
-     */
-    private String getEmbeddingFromPython(String text) {
-        String url = "http://localhost:8000/embed";
-        Map<String, String> request = Map.of("text", text);
-
-        try {
-            Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
-            if (response != null && response.containsKey("embedding")) {
-                List<Double> vector = (List<Double>) response.get("embedding");
-                return vector.toString(); // "[0.1, 0.2, ...]" 형태의 문자열 반환
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("파이썬 임베딩 서버 호출 실패! 서버가 켜져 있는지 확인하세요.", e);
-        }
-        return null;
     }
 }
