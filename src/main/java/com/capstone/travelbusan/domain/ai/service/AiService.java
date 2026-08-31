@@ -53,4 +53,38 @@ public class AiService {
 
         return "응답을 받지 못했습니다.";
     }
+
+    /**
+     * OpenAI Embedding API (text-embedding-3-small)를 호출하여 텍스트를 벡터 문자열로 변환합니다.
+     * PostgreSQL pgvector (?::vector)에 바로 바인딩 가능한 [0.123, -0.456, ...] 형태를 반환합니다.
+     */
+    public String getEmbedding(String text) {
+        String url = "https://api.openai.com/v1/embeddings";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey);
+
+        Map<String, Object> requestBody = Map.of(
+                "model", "text-embedding-3-small",
+                "input", text
+        );
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            Map<String, Object> response = restTemplate.postForObject(url, entity, Map.class);
+            if (response != null && response.containsKey("data")) {
+                List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+                if (data != null && !data.isEmpty()) {
+                    List<Double> embedding = (List<Double>) data.get(0).get("embedding");
+                    return embedding.toString();
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("OpenAI 임베딩 API 호출 실패: " + e.getMessage(), e);
+        }
+
+        throw new RuntimeException("OpenAI 임베딩 응답을 받지 못했습니다.");
+    }
 }

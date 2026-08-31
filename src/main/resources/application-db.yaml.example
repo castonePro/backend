@@ -1,10 +1,16 @@
-# 데이터베이스 연결 정보
-# 이 파일을 복사해서 application-db.yaml로 이름을 바꾸고, 본인 로컬 DB 정보로 채워넣으세요.
+# Oracle AI DB 데이터베이스 연결 정보 (지갑 미사용 TLS 모드)
+# 이 파일을 복사해서 application-db.yaml로 이름을 바꾸고 본인 Oracle DB 정보로 채워넣으세요.
 # (application-db.yaml은 .gitignore에 등록되어 있어 git에는 올라가지 않습니다.)
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/travelbusan
-    username: postgres
-    password: 여기에_본인_로컬_postgres_비밀번호
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:oracle:thin:@${DB_DSN}
+    username: ${DB_USER:admin}
+    password: 여기에_본인_오라클_비밀번호
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect

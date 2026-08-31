@@ -1,0 +1,36 @@
+services:
+  # ----------------------------------------------------------------------------
+  # Spring Boot 백엔드 애플리케이션 서비스
+  # (외부 Oracle AI DB - 지갑 미사용 TLS 모드 연동)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: travelbusan-backend
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
+      # Oracle AI DB (지갑 미사용 TLS 모드 DSN 기반 JDBC 연결)
+      - SPRING_DATASOURCE_URL=${DB_URL:-jdbc:oracle:thin:@${DB_DSN}}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-${DB_USERNAME}}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=oracle.jdbc.OracleDriver
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.OracleDialect
+      # 기타 앱 환경변수
+      - SPRING_AI_OPENAI_API_KEY=${OPENAI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ACCESS_TOKEN_VALIDITY_IN_SECONDS=${JWT_ACCESS_TOKEN_VALIDITY_SECONDS:-3600}
+      - JWT_REFRESH_TOKEN_VALIDITY_IN_SECONDS=${JWT_REFRESH_TOKEN_VALIDITY_SECONDS:-86400}
+      - EMBEDDING_SERVER_URL=${EMBEDDING_SERVER_URL:-http://localhost:8000}
+      - TZ=Asia/Seoul
+    networks:
+      - travelbusan-net
+
+networks:
+  travelbusan-net:
+    driver: bridge

@@ -49,3 +49,5 @@ src/main/resources/application-ai.yaml
 src/main/resources/firebase-adminsdk.json
 
 .env
+
+*.gz

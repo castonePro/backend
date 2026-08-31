@@ -1,4 +1,4 @@
-# OpenAI API 키 설정 (AI 여행 플래너 기능에서 사용)
+# OpenAI API 키 설정 (AI 여행 플래너 LLM 생성 및 RAG 임베딩 변환에 사용)
 # 이 파일을 복사해서 application-ai.yaml로 이름을 바꾸고, api-key 값을 본인/팀 키로 채워넣으세요.
 # (application-ai.yaml은 .gitignore에 등록되어 있어 git에는 올라가지 않습니다.)
 
@@ -6,3 +6,8 @@ spring:
   ai:
     openai:
       api-key: 여기에_OpenAI_API_키를_붙여넣으세요
+      # 임베딩 모델 (기본: text-embedding-3-small)
+      embedding:
+        options:
+          model: text-embedding-3-small
+
