@@ -9,9 +9,9 @@ import com.capstone.travelbusan.domain.planner.repository.ItineraryRepository;
 import com.capstone.travelbusan.domain.recommend_place.repository.TravelPlaceRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlannerService {
@@ -34,28 +35,43 @@ public class PlannerService {
 
     public String generateTravelPlan(PlannerRequest request) {
         // 1. 임베딩 생성 (OpenAI Embedding API 활용)
-        String combinedPrompt = String.join(", ", request.categories()) + " " + request.prompt();
+        String categoriesStr = (request.categories() != null && !request.categories().isEmpty())
+                ? String.join(", ", request.categories())
+                : "전체";
+        String promptStr = request.prompt() != null ? request.prompt() : "";
+        String combinedPrompt = categoriesStr + " " + promptStr;
+
+        log.info("[1/4] 임베딩 생성 시작: prompt={}", combinedPrompt);
         String vectorString = aiService.getEmbedding(combinedPrompt);
+        log.info("[1/4] 임베딩 생성 완료");
 
         // 2. 관련 장소 검색 (Oracle 23ai AI Vector Search: VECTOR_DISTANCE & FETCH FIRST)
         String sql = """
             SELECT p.title, p.addr1, p.cat1, p.cat2, p.cat3, f.use_time, v.content_chunk,
-                   p.mapx, p.mapy 
+                   p.location.SDO_POINT.X AS mapx,
+                   p.location.SDO_POINT.Y AS mapy 
             FROM travel_places p 
             JOIN travel_vectors v ON p.place_id = v.place_id 
             LEFT JOIN travel_fees f ON p.place_id = f.place_id
             ORDER BY VECTOR_DISTANCE(v.embedding, TO_VECTOR(?), COSINE) ASC
             FETCH FIRST 30 ROWS ONLY
             """;
+        log.info("[2/4] DB 벡터 유사도 검색 시작");
         List<Map<String, Object>> places = jdbcTemplate.queryForList(sql, vectorString);
+        log.info("[2/4] DB 검색 완료: {}개 장소 조회됨", places.size());
 
-        // 3. 문맥(Context) 조립
+        // 3. 문맥(Context) 조립 (Oracle 컬럼 대소문자 호환 처리)
         String context = places.stream()
                 .map(p -> String.format("- %s (%s) / 분류: %s, %s, %s / 운영시간: %s / 좌표: [위도:%s, 경도:%s] / 상세: %s",
-                        p.get("title"), p.get("addr1"), p.get("cat1"), p.get("cat2"), p.get("cat3"),
-                        p.getOrDefault("use_time", "정보 없음"),
-                        p.getOrDefault("mapy", "0.0"), p.getOrDefault("mapx", "0.0"),
-                        p.get("content_chunk")))
+                        getCol(p, "title", "장소"),
+                        getCol(p, "addr1", "주소 없음"),
+                        getCol(p, "cat1", ""),
+                        getCol(p, "cat2", ""),
+                        getCol(p, "cat3", ""),
+                        getCol(p, "use_time", "정보 없음"),
+                        getCol(p, "mapy", "0.0"),
+                        getCol(p, "mapx", "0.0"),
+                        getCol(p, "content_chunk", "")))
                 .collect(Collectors.joining("\n"));
 
         // 4. 기준 날짜 설정 (내일 날짜로 설정)
@@ -207,7 +223,7 @@ public class PlannerService {
                     .description(course.description())
                     .latitude(course.latitude())
                     .longitude(course.longitude())
-                    .placeId(travelPlaceRepository.findByTitle(course.place())  // ★ 추가
+                    .placeId(travelPlaceRepository.findFirstByTitle(course.place())  // ★ 다건 결과 대비 findFirstByTitle 사용
                             .map(p -> p.getPlaceId().longValue())
                             .orElse(null))
                     .sortOrder(i + 1) // 리스트 순서대로 정렬 순서 부여
@@ -223,5 +239,12 @@ public class PlannerService {
         Itinerary savedItinerary = itineraryRepository.save(itinerary);
 
         return savedItinerary.getItineraryId();
+    }
+
+    private String getCol(Map<String, Object> map, String key, String defaultValue) {
+        Object val = map.get(key);
+        if (val == null) val = map.get(key.toUpperCase());
+        if (val == null) val = map.get(key.toLowerCase());
+        return val != null ? String.valueOf(val) : defaultValue;
     }
 }

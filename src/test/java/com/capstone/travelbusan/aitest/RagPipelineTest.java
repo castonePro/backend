@@ -33,14 +33,13 @@ class RagPipelineTest {
         String vectorString = aiService.getEmbedding(userQuestion);
         System.out.println("🧬 [임베딩]: 질문의 벡터화 완료 (OpenAI text-embedding-3-small)");
 
-        // 3. PostgreSQL(pgvector)를 이용한 유사도 검색
-        // <=> 연산자는 코사인 거리(Cosine Distance)를 계산합니다.
+        // 3. Oracle 23ai AI Vector Search를 이용한 유사도 검색
         String sql = """
                 SELECT p.title, p.addr1, v.content_chunk 
                 FROM travel_places p 
                 JOIN travel_vectors v ON p.place_id = v.place_id 
-                ORDER BY v.embedding <=> ?::vector 
-                LIMIT 3
+                ORDER BY VECTOR_DISTANCE(v.embedding, TO_VECTOR(?), COSINE) ASC 
+                FETCH FIRST 3 ROWS ONLY
                 """;
 
         List<Map<String, Object>> searchResults = jdbcTemplate.queryForList(sql, vectorString);

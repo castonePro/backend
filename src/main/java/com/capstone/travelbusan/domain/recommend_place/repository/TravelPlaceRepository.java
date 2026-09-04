@@ -10,7 +10,8 @@ import java.util.Optional;
 
 public interface TravelPlaceRepository extends JpaRepository<TravelPlace, Integer> {
 
-    // place_name으로 단건 조회 (플래너 저장 시 place_id 매핑용)
+    // place_name으로 단건 조회 (플래너 저장 시 place_id 매핑용, 동명 장소 다건 시 첫 번째 반환)
+    Optional<TravelPlace> findFirstByTitle(String title);
     Optional<TravelPlace> findByTitle(String title);
 
     // 카테고리별 이미지 있는 장소 랜덤 N개 (Oracle: DBMS_RANDOM.VALUE, FETCH FIRST)

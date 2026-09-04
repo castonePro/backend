@@ -37,15 +37,16 @@ public class ItineraryDetail {
     @Column(name = "place_name", nullable = false)
     private String placeName;
 
-    // PostgreSQL의 TEXT[] 타입을 Java List<String>으로 매핑
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "category_type", columnDefinition = "text[]")
+    // Oracle 호환: 콤마 구분자("자연,공원")로 VARCHAR2 컬럼에 저장
+    @Convert(converter = com.capstone.travelbusan.global.converter.StringListConverter.class)
+    @Column(name = "category_type", length = 500)
     private List<String> categoryType;
 
     @Column(name = "operating_hours")
     private String operatingHours;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "description")
     private String description;
 
     @Column(name = "place_id")

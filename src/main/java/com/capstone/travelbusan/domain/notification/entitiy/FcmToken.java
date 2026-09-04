@@ -23,7 +23,8 @@ public class FcmToken {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "token", nullable = false)
     private String token;
 
     @Column(name = "updated_at")

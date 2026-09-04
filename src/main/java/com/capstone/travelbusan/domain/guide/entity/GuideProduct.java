@@ -31,7 +31,8 @@ public class GuideProduct {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "description", nullable = false)
     private String description;
 
     @Column(nullable = false, length = 100)
@@ -50,14 +51,16 @@ public class GuideProduct {
     @Builder.Default
     private Boolean hasCar = false;
 
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(columnDefinition = "varchar(50)[]", nullable = false)
+    // Oracle 호환: 콤마 구분자
+    @Convert(converter = com.capstone.travelbusan.global.converter.StringListConverter.class)
+    @Column(name = "available_languages", nullable = false, length = 500)
     private List<String> availableLanguages;
 
     @Column(nullable = false, length = 255)
     private String meetingPoint;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "meeting_point_desc")
     private String meetingPointDesc;
 
     @JdbcTypeCode(SqlTypes.JSON)

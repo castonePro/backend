@@ -34,7 +34,8 @@ public class CompanionChatMessage {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(nullable = false)
     private String content;
 
     @Column(name = "created_at", updatable = false)

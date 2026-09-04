@@ -54,7 +54,8 @@ public class Report {
     @Column(name = "reason_category", nullable = false, length = 30)
     private String reasonCategory;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "description")
     private String description;
 
     @Column(nullable = false, length = 20)
