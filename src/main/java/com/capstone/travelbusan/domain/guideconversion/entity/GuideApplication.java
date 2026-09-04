@@ -33,7 +33,8 @@ public class GuideApplication {
     @JoinColumn(name = "applicant_id", nullable = false)
     private User applicant;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "message")
     private String message;
 
     @Column(nullable = false, length = 20)
@@ -47,7 +48,8 @@ public class GuideApplication {
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
-    @Column(name = "review_note", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "review_note")
     private String reviewNote;
 
     public void approve(String note) {

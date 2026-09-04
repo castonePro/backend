@@ -32,7 +32,8 @@ public class Notification {
     @Column(nullable = false, length = 100)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "body", nullable = false)
     private String body;
 
     @Column(name = "is_read", nullable = false)

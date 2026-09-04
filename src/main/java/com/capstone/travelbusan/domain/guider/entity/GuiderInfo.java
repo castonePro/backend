@@ -27,26 +27,27 @@ public class GuiderInfo {
     @JoinColumn(name = "guide_id")
     private User user;
 
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(columnDefinition = "varchar(50)[]", nullable = false)
+    // Oracle 호환: 콤마 구분자
+    @Convert(converter = com.capstone.travelbusan.global.converter.StringListConverter.class)
+    @Column(name = "active_regions", nullable = false, length = 500)
     private List<String> activeRegions;
 
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(columnDefinition = "varchar(50)[]", nullable = false)
+    @Convert(converter = com.capstone.travelbusan.global.converter.StringListConverter.class)
+    @Column(name = "available_languages", nullable = false, length = 500)
     private List<String> availableLanguages;
 
     @Column(nullable = false, length = 20)
     private String experiencePeriod;
 
-    // 어학 성적 리스트 (JSONB)
+    // 어학 성적 리스트 (JSON)
     @JdbcTypeCode(SqlTypes.JSON)
     private List<LanguageScoreDto> languageScores;
 
     @Column(length = 500)
     private String introduction;
 
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(columnDefinition = "varchar(50)[]", nullable = false)
+    @Convert(converter = com.capstone.travelbusan.global.converter.StringListConverter.class)
+    @Column(name = "specialties", nullable = false, length = 500)
     private List<String> specialties;
 
     @Column(precision = 5, scale = 2)

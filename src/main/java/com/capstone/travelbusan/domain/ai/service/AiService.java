@@ -39,26 +39,31 @@ public class AiService {
 
         try {
             // 3. API 호출 및 응답 처리
-            // 응답 구조가 복잡하므로 Map.class로 받거나 전용 DTO를 정의해야 합니다.
             Map<String, Object> response = restTemplate.postForObject(url, entity, Map.class);
 
             if (response != null && response.containsKey("choices")) {
                 List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
-                Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                return (String) message.get("content");
+                if (choices != null && !choices.isEmpty()) {
+                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+                    return (String) message.get("content");
+                }
             }
         } catch (Exception e) {
-            return "에러 발생: " + e.getMessage();
+            throw new RuntimeException("OpenAI Chat API 호출 실패: " + e.getMessage(), e);
         }
 
-        return "응답을 받지 못했습니다.";
+        throw new RuntimeException("OpenAI로부터 응답을 받지 못했습니다.");
     }
 
     /**
-     * OpenAI Embedding API (text-embedding-3-small)를 호출하여 텍스트를 벡터 문자열로 변환합니다.
-     * PostgreSQL pgvector (?::vector)에 바로 바인딩 가능한 [0.123, -0.456, ...] 형태를 반환합니다.
+     * OpenAI Embedding API (text-embedding-3-small)를 호출하여 텍스트를 768차원 벡터 문자열로 변환합니다.
+     * DB(Oracle VECTOR, PostgreSQL pgvector)에 바로 바인딩 가능한 [0.123, -0.456, ...] 형태를 반환합니다.
      */
     public String getEmbedding(String text) {
+        return getEmbedding(text, 768);
+    }
+
+    public String getEmbedding(String text, int dimensions) {
         String url = "https://api.openai.com/v1/embeddings";
 
         HttpHeaders headers = new HttpHeaders();
@@ -67,7 +72,8 @@ public class AiService {
 
         Map<String, Object> requestBody = Map.of(
                 "model", "text-embedding-3-small",
-                "input", text
+                "input", text,
+                "dimensions", dimensions
         );
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);

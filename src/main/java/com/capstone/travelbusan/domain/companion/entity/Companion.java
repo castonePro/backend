@@ -57,15 +57,17 @@ public class Companion {
     @Column(name = "max_participants", nullable = false)
     private Integer maxParticipants;
 
-    // PostgreSQL text[] 매핑 (ItineraryDetail.categoryType과 동일 패턴)
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "preference_tags", columnDefinition = "text[]")
+    // Oracle 호환: 콤마 구분자로 VARCHAR2에 저장
+    @Convert(converter = com.capstone.travelbusan.global.converter.StringListConverter.class)
+    @Column(name = "preference_tags", length = 500)
     private List<String> preferenceTags;
 
-    @Column(name = "cost_sharing_note", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "cost_sharing_note")
     private String costSharingNote;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "description")
     private String description;
 
     // 모집 나이대 — 둘 다 null이면 연령무관 (탐색 필터용)

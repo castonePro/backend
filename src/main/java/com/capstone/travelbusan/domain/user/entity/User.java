@@ -29,7 +29,8 @@ public class User {
     @Column(name = "social_provider", length = 50)
     private String socialProvider;
 
-    @Column(name = "profile_image_url", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "profile_image_url")
     private String profileImageUrl;
 
     @Column(name = "is_guide", nullable = false)

@@ -45,16 +45,17 @@ public class CompanionReview {
     @Column(nullable = false, precision = 2, scale = 1)
     private BigDecimal rating;
 
-    // 예: "시간 약속", "매너 좋음", "소통 원활" 등 태그형 평가
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "tags", columnDefinition = "text[]")
+    // 예: "시간 약속", "매너 좋음", "소통 원활" 등 태그형 평가 (Oracle 호환: 콤마 구분자)
+    @Convert(converter = com.capstone.travelbusan.global.converter.StringListConverter.class)
+    @Column(name = "tags", length = 500)
     private List<String> tags;
 
     // 방장 전용 "일정 운영 평가" — reviewee가 해당 동행의 방장일 때만 값이 들어간다
     @Column(name = "operation_rating", precision = 2, scale = 1)
     private BigDecimal operationRating;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "comment")
     private String comment;
 
     @Column(name = "created_at", updatable = false)

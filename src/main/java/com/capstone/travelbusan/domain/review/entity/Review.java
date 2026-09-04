@@ -37,7 +37,8 @@ public class Review {
     @Column(nullable = false, precision = 2, scale = 1)
     private BigDecimal rating;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "content")
     private String content;
 
     @Column(name = "created_at", updatable = false)

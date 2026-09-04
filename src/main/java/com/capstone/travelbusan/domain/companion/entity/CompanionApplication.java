@@ -39,7 +39,8 @@ public class CompanionApplication {
     @JoinColumn(name = "applicant_id", nullable = false)
     private User applicant;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "introduction")
     private String introduction;
 
     @Column(nullable = false, length = 20)

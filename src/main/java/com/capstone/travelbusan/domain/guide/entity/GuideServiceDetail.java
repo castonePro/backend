@@ -35,6 +35,7 @@ public class GuideServiceDetail {
     @Column(nullable = false, length = 255)
     private String location;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "content", nullable = false)
     private String content;
 }
