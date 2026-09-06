@@ -20,9 +20,18 @@ public class FirebaseConfig {
     public void initialize() {
         if (!FirebaseApp.getApps().isEmpty()) return;
 
-        try (InputStream serviceAccount = getClass()
-                .getClassLoader()
-                .getResourceAsStream("firebase-adminsdk.json")) {
+        try {
+            InputStream serviceAccount = getClass()
+                    .getClassLoader()
+                    .getResourceAsStream("firebase-adminsdk.json");
+
+            // 클래스패스에 없으면 현재 작업 디렉토리(외부 마운트 파일)에서도 탐색
+            if (serviceAccount == null) {
+                java.io.File file = new java.io.File("firebase-adminsdk.json");
+                if (file.exists()) {
+                    serviceAccount = new java.io.FileInputStream(file);
+                }
+            }
 
             if (serviceAccount == null) {
                 log.warn("firebase-adminsdk.json이 없어 Firebase(푸시 알림)를 초기화하지 않습니다. " +
@@ -35,6 +44,7 @@ public class FirebaseConfig {
                     .build();
 
             FirebaseApp.initializeApp(options);
+            log.info("🔥 [Firebase] Firebase Admin SDK가 성공적으로 초기화되었습니다.");
         } catch (IOException e) {
             log.warn("Firebase 초기화 실패 — 푸시 알림 없이 나머지 기능은 정상 동작합니다.", e);
         }

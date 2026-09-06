@@ -9,5 +9,5 @@
 
 jwt:
   secret: 여기에_JWT_시크릿_키를_붙여넣으세요
-  access-token-validity-in-seconds: 3600
-  refresh-token-validity-in-seconds: 86400
+  access-token-validity-in-seconds: 1209600
+  refresh-token-validity-in-seconds: 2592000
