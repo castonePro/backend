@@ -19,12 +19,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.loginFail(e.getMessage(), e.getFailedAttempts()));
     }
 
-    // 2. 잘못된 인자 예외 (비밀번호 틀림 등 일반 실패)
+    // 2. 잘못된 인자 예외
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
         log.warn("잘못된 인자 예외: {}", e.getMessage());
         return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED) // 401 Unauthorized
+                .status(HttpStatus.BAD_REQUEST) // 400 Bad Request
                 .body(ErrorResponse.error(e.getMessage()));
     }
 

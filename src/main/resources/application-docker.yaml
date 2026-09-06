@@ -23,8 +23,8 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
-  access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_SECONDS:3600}
-  refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY_SECONDS:86400}
+  access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY_SECONDS:1209600}
+  refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY_SECONDS:2592000}
 
 embedding:
   server:

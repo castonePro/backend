@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //무상태를 통한 세션 미사용
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/places/**").permitAll()
-                        .requestMatchers("/ws/chat/**").permitAll()
+                        .requestMatchers("/ws/**", "/ws/chat/**").permitAll()
                         .requestMatchers("/api/v1/auth/**", "/api/v1/planner/generate").permitAll()
                         //.requestMatchers("/api/v1/auth/**").permitAll() // 로그인/회원가입은 허용
                         .anyRequest().authenticated() // 나머지는 JWT 인증 필요
