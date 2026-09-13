@@ -1,0 +1,14 @@
+# 네이버클라우드플랫폼(NCP) Maps Directions API 키 (일정 코스 자동차 경로/거리/소요시간 계산에 사용)
+# 이 파일을 복사해서 application-naver.yaml로 이름을 바꾸고, 실제 Client ID/Secret 값을 채워넣으세요.
+# (application-naver.yaml은 .gitignore에 등록되어 있어 git에는 올라가지 않습니다.)
+#
+# 발급 경로: console.ncloud.com → AI·Application Service → Application Service → Maps
+#           → 이용 신청 → Application 등록 (Directions 5 체크) → 해당 애플리케이션의 "인증키 관리"
+#
+# 주의: client-secret은 절대 프론트엔드(.env.local 등 브라우저에 노출되는 파일)에 넣지 마세요.
+#      백엔드에서만 서버 대 서버로 호출합니다.
+
+naver:
+  maps:
+    client-id: 여기에_NCP_Client_ID를_붙여넣으세요
+    client-secret: 여기에_NCP_Client_Secret을_붙여넣으세요
