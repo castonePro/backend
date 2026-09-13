@@ -45,6 +45,9 @@ src/main/resources/application-jwt.yaml
 #API Key 포함 파일
 src/main/resources/application-ai.yaml
 
+# 네이버클라우드 Maps API 키(Directions) 포함 파일
+src/main/resources/application-naver.yaml
+
 # Firebase 서비스 계정 키(private_key 포함) — 절대 커밋 금지
 src/main/resources/firebase-adminsdk.json
 

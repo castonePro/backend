@@ -5,6 +5,7 @@ spring:
       - db
       - jwt
       - ai
+      - naver
 
   application:
     name: travelbusan
