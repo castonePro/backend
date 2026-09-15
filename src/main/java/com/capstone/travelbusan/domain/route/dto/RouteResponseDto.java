@@ -15,7 +15,7 @@ public class RouteResponseDto {
     /** 총 이동 거리 (미터) */
     private long distanceMeters;
 
-    /** 총 소요 시간 (초) — 네이버 응답은 밀리초라서 서비스에서 변환함 */
+    /** 총 소요 시간 (초 단위. 네이버 API는 밀리초로 응답하므로 변환된 값) */
     private long durationSec;
 
     /** 실제 도로를 따라가는 경로 좌표 목록 (지도에 선으로 그릴 때 사용) */
