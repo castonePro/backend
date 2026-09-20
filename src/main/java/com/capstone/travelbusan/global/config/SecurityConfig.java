@@ -57,7 +57,9 @@ public class SecurityConfig {
                 "http://158.180.82.175*",
                 "https://158.180.82.175*",
                 "http://localhost:[*]",
-                "http://127.0.0.1:[*]"
+                "http://127.0.0.1:[*]",
+                "https://*.travelbusan.site",
+                "https://travelbusan.site"
         ));
 
         // 허용할 HTTP 메서드
