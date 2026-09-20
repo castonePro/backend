@@ -50,12 +50,14 @@ public class BidApplicationService {
 
         BidApplication saved = bidApplicationRepository.save(application);
 
-        // 사용자에게 알림
-        fcmService.sendNotification(
-                bid.getUser().getId(),
-                "가이드 입찰 참여",
-                guide.getNickname() + " 가이드가 입찰에 참여했습니다."
-        );
+        // 사용자에게 알림 (본인이 아닌 경우에만)
+        if (!guideId.equals(bid.getUser().getId())) {
+            fcmService.sendNotification(
+                    bid.getUser().getId(),
+                    "가이드 입찰 참여",
+                    guide.getNickname() + " 가이드가 입찰에 참여했습니다."
+            );
+        }
 
         return BidApplicationDto.Response.from(saved);
     }
@@ -97,12 +99,14 @@ public class BidApplicationService {
         );
         bid.close();
         userBidRepository.save(bid);
-        // 선택된 가이드에게 알림
-        fcmService.sendNotification(
-                application.getGuide().getId(),
-                "가이드 선택됨",
-                bid.getUser().getNickname() + "님이 당신을 가이드로 선택했습니다."
-        );
+        // 선택된 가이드에게 알림 (본인이 아닌 경우에만)
+        if (!userId.equals(application.getGuide().getId())) {
+            fcmService.sendNotification(
+                    application.getGuide().getId(),
+                    "가이드 선택됨",
+                    bid.getUser().getNickname() + "님이 당신을 가이드로 선택했습니다."
+            );
+        }
 
         return room;
     }

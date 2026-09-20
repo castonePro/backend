@@ -9,14 +9,19 @@
 -- Oracle에는 CREATE TABLE IF NOT EXISTS가 없으므로, 이미 만들어진 환경에서
 -- 재실행하면 ORA-00955(이름이 이미 사용 중)가 난다. 정상이니 무시하면 된다.
 --
--- 타입은 Hibernate 6 + OracleDialect의 기본 매핑에 맞춘 것이다.
---   UUID -> RAW(16),  String -> VARCHAR2,  @Lob String -> CLOB,
+-- 타입:
+--   UUID -> VARCHAR2(36) (Hibernate @JdbcTypeCode(SqlTypes.VARCHAR))
+--   String -> VARCHAR2,  @Lob String -> CLOB (@JdbcTypeCode(SqlTypes.CLOB))
 --   Integer -> NUMBER(10),  LocalDateTime -> TIMESTAMP(6)
--- validate가 특정 컬럼에서 실패하면 그 컬럼만 여기 매핑에 맞춰 수정하면 된다.
+--
+-- ※ 기존에 RAW(16)으로 생성되어 ORA-01465가 발생한 경우:
+--   DROP TABLE planner_messages CASCADE CONSTRAINTS;
+--   DROP TABLE planner_sessions CASCADE CONSTRAINTS;
+--   실행 후 아래 CREATE TABLE을 다시 실행하세요.
 
 CREATE TABLE planner_sessions (
-    session_id         RAW(16)       PRIMARY KEY,
-    user_id            RAW(16),                          -- 비로그인 세션이면 NULL
+    session_id         VARCHAR2(36)  PRIMARY KEY,
+    user_id            VARCHAR2(36),                     -- 비로그인 세션이면 NULL
     locale             VARCHAR2(16),                     -- ko, en, ja, zh-CN, vi, id
     current_plan       CLOB,                             -- 현재 일정 JSON (single source of truth)
     preference_summary CLOB,                             -- 오래된 턴을 압축한 사용자 선호
@@ -31,8 +36,8 @@ CREATE INDEX idx_planner_sessions_user    ON planner_sessions(user_id);
 CREATE INDEX idx_planner_sessions_updated ON planner_sessions(updated_at);
 
 CREATE TABLE planner_messages (
-    message_id        RAW(16)       PRIMARY KEY,
-    session_id        RAW(16)       NOT NULL,
+    message_id        VARCHAR2(36)  PRIMARY KEY,
+    session_id        VARCHAR2(36)  NOT NULL,
     seq               NUMBER(10)    NOT NULL,            -- 세션 내 순번 (created_at은 동률이 날 수 있음)
     role              VARCHAR2(20)  NOT NULL,            -- user | assistant
     content           CLOB          NOT NULL,            -- 자연어만. 일정 JSON은 넣지 않는다
