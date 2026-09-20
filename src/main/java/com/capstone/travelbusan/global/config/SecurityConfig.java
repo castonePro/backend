@@ -35,6 +35,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/places/**").permitAll()
                         .requestMatchers("/ws/**", "/ws/chat/**").permitAll()
                         .requestMatchers("/api/v1/auth/**", "/api/v1/planner/generate").permitAll()
+                        // 멀티턴 대화도 비로그인 허용(기존 generate와 동일 정책).
+                        // 대신 SessionRateLimiter(IP당 요청 수)와 세션당 턴·토큰 상한으로 남용을 막는다.
+                        .requestMatchers("/api/v1/planner/sessions/**").permitAll()
                         //.requestMatchers("/api/v1/auth/**").permitAll() // 로그인/회원가입은 허용
                         .anyRequest().authenticated() // 나머지는 JWT 인증 필요
                 )

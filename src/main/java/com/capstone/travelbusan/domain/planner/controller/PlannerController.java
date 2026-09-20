@@ -1,12 +1,13 @@
 package com.capstone.travelbusan.domain.planner.controller;
 
+import com.capstone.travelbusan.domain.ai.exception.AiApiException;
+import com.capstone.travelbusan.domain.planner.dto.GeneratedPlanDto;
 import com.capstone.travelbusan.domain.planner.dto.ItineraryResponseDto;
 import com.capstone.travelbusan.domain.planner.dto.PlannerRequest;
 import com.capstone.travelbusan.domain.planner.dto.PlannerResponse;
 import com.capstone.travelbusan.domain.planner.dto.PlannerSaveRequest;
 import com.capstone.travelbusan.domain.planner.service.PlannerService;
 import com.capstone.travelbusan.global.security.principal.UserPrincipal;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -22,35 +24,37 @@ import java.util.List;
 public class PlannerController {
 
     private final PlannerService plannerService;
-    private final ObjectMapper objectMapper;
 
+    /**
+     * 일정 생성. 응답 JSON 파싱은 Structured Outputs가 보장하므로
+     * 예전의 ```json 래퍼 벗기기(cleanJsonString)는 더 이상 필요 없다.
+     */
     @PostMapping("/generate")
     public ResponseEntity<PlannerResponse> generate(@RequestBody PlannerRequest request) {
+        log.info("일정 생성 요청 수신: prompt={}, categories={}, lang={}",
+                request.prompt(), request.categories(), request.lang());
         try {
-            log.info("일정 생성 요청 수신: prompt={}, categories={}", request.prompt(), request.categories());
-            String gptJsonResponse = plannerService.generateTravelPlan(request);
-            String cleanedJson = cleanJsonString(gptJsonResponse);
-            Object data = objectMapper.readValue(cleanedJson, Object.class);
-            return ResponseEntity.ok(new PlannerResponse("success", data));
+            GeneratedPlanDto plan = plannerService.generateTravelPlan(request).plan();
+            return ResponseEntity.ok(new PlannerResponse("success", plan));
+        } catch (IllegalStateException e) {
+            // 후보 부족, 검증 후 남은 코스 없음 등 — 사용자가 조건을 바꾸면 해결되는 경우
+            log.warn("일정 생성 실패(입력/데이터 문제): {}", e.getMessage());
+            return ResponseEntity.unprocessableEntity().body(errorBody(e.getMessage()));
+        } catch (AiApiException e) {
+            log.error("일정 생성 실패(AI 호출): ", e);
+            return ResponseEntity.status(502).body(errorBody("AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요."));
         } catch (Exception e) {
             log.error("일정 생성 중 오류 발생: ", e);
-            return ResponseEntity.internalServerError()
-                    .body(new PlannerResponse("error", "일정 생성 중 오류가 발생했습니다: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(errorBody("일정 생성 중 오류가 발생했습니다."));
         }
     }
 
-    private String cleanJsonString(String rawJson) {
-        if (rawJson == null) return "{}";
-        String trimmed = rawJson.trim();
-        if (trimmed.startsWith("```json")) {
-            trimmed = trimmed.substring(7);
-        } else if (trimmed.startsWith("```")) {
-            trimmed = trimmed.substring(3);
-        }
-        if (trimmed.endsWith("```")) {
-            trimmed = trimmed.substring(0, trimmed.length() - 3);
-        }
-        return trimmed.trim();
+    /**
+     * 프론트 api client는 에러 본문에서 message 또는 data.message를 찾는다.
+     * data에 문자열만 담으면 사용자에게 "HTTP 422"만 보이므로 message 키로 감싼다.
+     */
+    private static PlannerResponse errorBody(String message) {
+        return new PlannerResponse("error", Map.of("message", message));
     }
 
     @PostMapping("/save")
