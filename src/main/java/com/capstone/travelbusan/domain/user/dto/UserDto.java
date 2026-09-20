@@ -20,4 +20,10 @@ public class UserDto {
             String sanction_level,
             LocalDateTime restricted_until
     ) {}
+
+    // 프로필 수정 요청 — PUT /api/v1/users/me (필드 둘 다 선택적, null이면 변경 안 함)
+    public record UpdateRequest(
+            String nickname,
+            String profile_image_url
+    ) {}
 }

@@ -35,6 +35,16 @@ public class GuideProductService {
                 .collect(Collectors.toList());
     }
 
+    // 게시된 상품 단건 조회 (사용자 가이드 상세 화면 — 기존엔 없어서 프론트가 목록에서 찾아 썼음)
+    public GuideProductResponseDto getPublishedProduct(UUID serviceId) {
+        GuideProduct product = guideProductRepository.findById(serviceId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+        if (!Boolean.TRUE.equals(product.getIsPublished())) {
+            throw new IllegalArgumentException("게시되지 않은 상품입니다.");
+        }
+        return GuideProductResponseDto.from(product);
+    }
+
     // ==================== 가이드용 ====================
 
     // 내 상품 전체 반환 (미게시 포함, 상품 관리 화면)

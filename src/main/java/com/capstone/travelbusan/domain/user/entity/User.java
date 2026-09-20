@@ -162,4 +162,14 @@ public class User {
     public void grantPreliminaryGuide() {
         this.preliminaryGuide = true;
     }
+
+    // 8. 프로필 수정 (닉네임 · 프로필 이미지) — PUT /api/v1/users/me
+    public void updateProfile(String nickname, String profileImageUrl) {
+        if (nickname != null && !nickname.isBlank()) {
+            this.nickname = nickname;
+        }
+        if (profileImageUrl != null) {
+            this.profileImageUrl = profileImageUrl;
+        }
+    }
 }

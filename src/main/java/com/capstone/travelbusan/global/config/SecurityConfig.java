@@ -52,8 +52,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 프론트엔드 배포 서버 (158.180.82.175) 및 Nginx 포트(80, 443, 3000 등), 로컬 개발 환경 허용
+        // 운영 도메인(travelbusan.site), 프론트엔드 배포 서버 (158.180.82.175) 및 Nginx 포트(80, 443, 3000 등), 로컬 개발 환경 허용
         configuration.setAllowedOriginPatterns(List.of(
+                // 운영 도메인 (HTTPS)
+                "https://travelbusan.site",
+                "https://www.travelbusan.site",
                 "http://158.180.82.175*",
                 "https://158.180.82.175*",
                 "http://localhost:[*]",
