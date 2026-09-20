@@ -1,0 +1,6 @@
+# 네이버클라우드플랫폼(NCP) Maps Directions API 설정 (.env 환경변수 매핑)
+naver:
+  maps:
+    client-id: ${NCP_CLIENT_ID}
+    client-secret: ${NCP_CLIENT_JWT_SECRET:${NCP_CLIENT_SECRET:}}
+

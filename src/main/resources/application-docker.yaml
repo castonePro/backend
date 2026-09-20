@@ -29,3 +29,8 @@ jwt:
 embedding:
   server:
     url: ${EMBEDDING_SERVER_URL:http://localhost:8000}
+
+naver:
+  maps:
+    client-id: ${NCP_CLIENT_ID}
+    client-secret: ${NCP_CLIENT_JWT_SECRET:${NCP_CLIENT_SECRET:}}
