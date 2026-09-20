@@ -36,17 +36,7 @@ out/
 ### VS Code ###
 .vscode/
 
-# DB 접속 정보 및 비밀번호가 포함된 파일
-src/main/resources/application-db.yaml
-
-# JWT 시크릿 키 및 인증 설정이 포함된 파일
-src/main/resources/application-jwt.yaml
-
-#API Key 포함 파일
-src/main/resources/application-ai.yaml
-
-# 네이버클라우드 Maps API 키(Directions) 포함 파일
-src/main/resources/application-naver.yaml
+# 민감 정보 포함 파일 (절대 커밋 금지)
 
 # Firebase 서비스 계정 키(private_key 포함) — 절대 커밋 금지
 src/main/resources/firebase-adminsdk.json

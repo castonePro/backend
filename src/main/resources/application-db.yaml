@@ -1,0 +1,13 @@
+# Oracle AI DB 데이터베이스 연결 정보 (.env 환경변수 매핑)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:oracle:thin:@${DB_DSN}}
+    username: ${DB_USER:${DB_USERNAME:admin}}
+    password: ${DB_PASSWORD}
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect

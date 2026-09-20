@@ -28,24 +28,24 @@ public class ItineraryDetail {
     @Column(name = "day_number", nullable = false)
     private Integer dayNumber;
 
-    @Column(name = "start_time")
+    @Column(name = "start_time", length = 20)
     private LocalTime startTime;
 
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
 
-    @Column(name = "place_name", nullable = false)
+    @Column(name = "place_name", nullable = false, length = 255)
     private String placeName;
 
-    // Oracle 호환: 콤마 구분자("자연,공원")로 VARCHAR2 컬럼에 저장
-    @Convert(converter = com.capstone.travelbusan.global.converter.StringListConverter.class)
-    @Column(name = "category_type", length = 500)
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "category_type")
     private List<String> categoryType;
 
-    @Column(name = "operating_hours")
+    @Column(name = "operating_hours", length = 255)
     private String operatingHours;
 
     @Lob
+    @JdbcTypeCode(SqlTypes.CLOB)
     @Column(name = "description")
     private String description;
 
@@ -55,6 +55,9 @@ public class ItineraryDetail {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
+    @Column(name = "latitude")
     private Double latitude;
+
+    @Column(name = "longitude")
     private Double longitude;
 }

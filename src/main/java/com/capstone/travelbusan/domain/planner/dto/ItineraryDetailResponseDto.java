@@ -10,7 +10,7 @@ import java.util.List;
 public class ItineraryDetailResponseDto {
     private Long detailId;
     private Integer dayNumber;
-    private LocalTime startTime;      // TIME 타입 매핑
+    private LocalTime startTime;
     private Integer durationMinutes;
     private String placeName;
     private List<String> categoryType; // TEXT[] 배열 매핑

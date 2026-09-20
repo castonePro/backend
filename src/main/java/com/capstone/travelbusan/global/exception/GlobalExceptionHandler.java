@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
@@ -58,7 +59,22 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.error(e.getMessage()));
     }
 
-    // 6. 그 외 예상치 못한 모든 예외 (500 에러)
+    // 6. DB 무결성 제약조건 위반 (외래 키 제약, 유니크 제약 등)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("데이터 무결성 제약조건 위반: {}", e.getMessage());
+
+        String clientMessage = "연결된 데이터(동행 모집글, 신청 내역 등)가 존재하여 삭제할 수 없습니다.";
+        if (e.getMessage() != null && e.getMessage().contains("ORA-00001")) {
+            clientMessage = "이미 존재하는 데이터입니다(중복 키 제약조건 위반).";
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT) // 409 Conflict
+                .body(ErrorResponse.error(clientMessage));
+    }
+
+    // 7. 그 외 예상치 못한 모든 예외 (500 에러)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllException(Exception e) {
         log.error("서버 내부 예외 발생 (500): ", e);
