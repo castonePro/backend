@@ -28,6 +28,12 @@ public class GuideProductController {
         return ResponseEntity.ok(guideProductService.getAllPublishedProducts());
     }
 
+    // 게시된 상품 단건 조회 (사용자 가이드 상세 화면)
+    @GetMapping("/products/{serviceId}")
+    public ResponseEntity<GuideProductResponseDto> getPublishedProduct(@PathVariable UUID serviceId) {
+        return ResponseEntity.ok(guideProductService.getPublishedProduct(serviceId));
+    }
+
     // ==================== 가이드용 ====================
 
     // 내 상품 전체 목록 (미게시 포함, 상품 관리 화면)

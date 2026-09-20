@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,6 +44,34 @@ public class UserController {
                 user.getNoShowCount(),
                 user.getSanctionLevel(),
                 user.getRestrictedUntil()
+        ));
+    }
+
+    // 프로필 수정 (닉네임 · 프로필 이미지) — 기존에는 조회 API만 있었음
+    @PutMapping("/me")
+    public ResponseEntity<UserDto.MeResponse> updateMe(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @RequestBody UserDto.UpdateRequest request) {
+        User user = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        user.updateProfile(request.nickname(), request.profile_image_url());
+        User saved = userRepository.save(user);
+
+        return ResponseEntity.ok(new UserDto.MeResponse(
+                saved.getId().toString(),
+                saved.getEmail(),
+                saved.getNickname(),
+                saved.getProfileImageUrl(),
+                saved.isGuide(),
+                saved.isPhoneVerified(),
+                saved.getBirthYear(),
+                saved.getGender(),
+                saved.getCompanionHostCount(),
+                saved.getCompanionJoinCount(),
+                saved.getNoShowCount(),
+                saved.getSanctionLevel(),
+                saved.getRestrictedUntil()
         ));
     }
 

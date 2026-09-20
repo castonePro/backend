@@ -32,6 +32,8 @@ public class TravelPlaceService {
         String sql = """
                 SELECT tp.place_id, tp.title, tp.addr1, tp.first_image, tp.first_image2,
                        tp.cat1, tp.cat2, tp.cat3,
+                       tp.location.SDO_POINT.X AS mapx,
+                       tp.location.SDO_POINT.Y AS mapy,
                        td.homepage, td.overview
                 FROM travel_places tp
                 LEFT JOIN travel_descriptions td ON tp.place_id = td.place_id
@@ -49,6 +51,8 @@ public class TravelPlaceService {
                 .cat1(row.get("cat1") != null ? (String) row.get("cat1") : "")
                 .cat2(row.get("cat2") != null ? (String) row.get("cat2") : "")
                 .cat3(row.get("cat3") != null ? (String) row.get("cat3") : "")
+                .longitude(row.get("mapx") != null ? ((Number) row.get("mapx")).doubleValue() : null)
+                .latitude(row.get("mapy") != null ? ((Number) row.get("mapy")).doubleValue() : null)
                 .homepage(row.get("homepage") != null ? (String) row.get("homepage") : "")
                 .overview(row.get("overview") != null ? (String) row.get("overview") : "상세 설명이 없습니다.") // null 처리
                 .build();

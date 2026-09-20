@@ -18,6 +18,8 @@ public class TravelPlaceDetailDto {
     private String cat1;
     private String cat2;
     private String cat3;
+    private Double latitude;  // travel_places.location(SDO_GEOMETRY).SDO_POINT.Y
+    private Double longitude; // travel_places.location(SDO_GEOMETRY).SDO_POINT.X
     private String homepage;
     private String overview; // null이면 "상세 설명이 없습니다." 처리
 }
