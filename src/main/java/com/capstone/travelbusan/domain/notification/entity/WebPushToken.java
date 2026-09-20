@@ -3,6 +3,8 @@ package com.capstone.travelbusan.domain.notification.entity;
 import com.capstone.travelbusan.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -23,7 +25,8 @@ public class WebPushToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "token_id")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "token_id", length = 36)
     private UUID tokenId;
 
     @ManyToOne(fetch = FetchType.LAZY)

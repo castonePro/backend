@@ -55,8 +55,10 @@ public class ChatService {
 
         ChatRoom saved = chatRoomRepository.save(room);
 
-        // 가이드에게 알림
-        fcmService.sendNotification(guideId, "새 채팅방", user.getNickname() + "님이 채팅을 시작했습니다.");
+        // 가이드에게 알림 (본인이 아닌 경우에만)
+        if (!userId.equals(guideId)) {
+            fcmService.sendNotification(guideId, "새 채팅방", user.getNickname() + "님이 채팅을 시작했습니다.");
+        }
 
         return ChatDto.RoomResponse.from(saved, 0, "");
     }
@@ -108,11 +110,17 @@ public class ChatService {
         // WebSocket으로 실시간 전송
         messagingTemplate.convertAndSend("/topic/chat/" + roomId, response);
 
-        // 상대방 FCM 알림
-        UUID receiverId = room.getUser().getId().equals(senderId)
-                ? room.getGuide().getId()
-                : room.getUser().getId();
-        fcmService.sendNotification(receiverId, sender.getNickname(), content);
+        // 상대방 FCM 알림 (발신자가 아닌 상대방에게만 전송)
+        UUID receiverId = null;
+        if (room.getUser().getId().equals(senderId)) {
+            receiverId = room.getGuide().getId();
+        } else if (room.getGuide().getId().equals(senderId)) {
+            receiverId = room.getUser().getId();
+        }
+
+        if (receiverId != null && !receiverId.equals(senderId)) {
+            fcmService.sendNotification(receiverId, sender.getNickname(), content);
+        }
 
         return response;
     }
@@ -126,12 +134,18 @@ public class ChatService {
         room.close();
         chatRoomRepository.save(room);
 
-        // 상대방 알림
-        UUID otherId = room.getUser().getId().equals(userId)
-                ? room.getGuide().getId()
-                : room.getUser().getId();
-        User user = findUser(userId);
-        fcmService.sendNotification(otherId, "채팅방 종료", user.getNickname() + "님이 채팅방을 나갔습니다.");
+        // 상대방 알림 (본인이 아닌 상대방에게만 전송)
+        UUID otherId = null;
+        if (room.getUser().getId().equals(userId)) {
+            otherId = room.getGuide().getId();
+        } else if (room.getGuide().getId().equals(userId)) {
+            otherId = room.getUser().getId();
+        }
+
+        if (otherId != null && !otherId.equals(userId)) {
+            User user = findUser(userId);
+            fcmService.sendNotification(otherId, "채팅방 종료", user.getNickname() + "님이 채팅방을 나갔습니다.");
+        }
 
         // WebSocket으로 나가기 알림
         messagingTemplate.convertAndSend("/topic/chat/" + roomId + "/leave", userId);
@@ -163,7 +177,9 @@ public class ChatService {
                 .build();
 
         ChatRoom saved = chatRoomRepository.save(room);
-        fcmService.sendNotification(guideId, "새 문의", user.getNickname() + "님이 문의를 시작했습니다.");
+        if (!userId.equals(guideId)) {
+            fcmService.sendNotification(guideId, "새 문의", user.getNickname() + "님이 문의를 시작했습니다.");
+        }
         return ChatDto.RoomResponse.from(saved, 0, "");
     }
 }

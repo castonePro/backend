@@ -8,11 +8,12 @@
 -- → 웹에 로그인해도 앱 토큰이 덮어써지지 않고, 한 사용자가 여러 브라우저에서 푸시를 받을 수 있다.
 --
 -- Oracle 기준. 재실행하면 ORA-00955(이름이 이미 사용 중)가 나는데 정상이니 무시하면 된다.
--- 타입은 Hibernate 6 + OracleDialect 기본 매핑: UUID -> RAW(16), LocalDateTime -> TIMESTAMP(6)
+-- ※ 기존에 RAW(16)으로 생성된 경우 삭제 후 재생성:
+-- DROP TABLE web_push_tokens CASCADE CONSTRAINTS;
 
 CREATE TABLE web_push_tokens (
-    token_id    RAW(16)        PRIMARY KEY,
-    user_id     RAW(16)        NOT NULL,
+    token_id    VARCHAR2(36)   PRIMARY KEY,
+    user_id     VARCHAR2(36)   NOT NULL,
     token       VARCHAR2(512)  NOT NULL,
     created_at  TIMESTAMP(6),
     updated_at  TIMESTAMP(6),

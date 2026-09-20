@@ -2,6 +2,8 @@ package com.capstone.travelbusan.domain.planner.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -27,11 +29,13 @@ public class PlannerSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "session_id")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "session_id", length = 36)
     private UUID sessionId;
 
     /** 로그인 사용자의 id. 익명 세션이면 null. */
-    @Column(name = "user_id")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "user_id", length = 36)
     private UUID userId;
 
     @Column(name = "locale", length = 16)
@@ -39,6 +43,7 @@ public class PlannerSession {
 
     /** 현재 일정(GeneratedPlanDto)의 JSON 직렬화. 아직 일정이 없으면 null. */
     @Lob
+    @JdbcTypeCode(SqlTypes.CLOB)
     @Column(name = "current_plan")
     private String currentPlan;
 
@@ -47,6 +52,7 @@ public class PlannerSession {
      * 히스토리를 무한히 쌓지 않으면서 사용자의 응답을 계속 반영하기 위한 슬롯.
      */
     @Lob
+    @JdbcTypeCode(SqlTypes.CLOB)
     @Column(name = "preference_summary")
     private String preferenceSummary;
 
